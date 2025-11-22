@@ -3,57 +3,69 @@
 #include <string.h>
 
 typedef struct Node {
-    char nomor[10]; 
-    int jenis;          
-    char status[20];    
+    char nomor[10];
+    char nama[50];
+    char kebutuhan[100];
+    char status[20];
     struct Node *next;
 } Node;
 
-Node *front = NULL;
-Node *rear = NULL;
+typedef struct {
+    Node *front;
+    Node *rear;
+} Queue;
 
-int countR = 1;
-int countP = 1;
-int countC = 1;
+Queue Qreg, Qprio, Qcs, Qhistory;
 
-void generateNomor(char *nomor, int jenis) {
-    if (jenis == 1)
-        sprintf(nomor, "R%03d", countR++);
-    else if (jenis == 2)
-        sprintf(nomor, "P%03d", countP++);
-    else
-        sprintf(nomor, "C%03d", countC++);
+int countR = 1, countP = 1, countC = 1;
+
+void initQueue(Queue *Q) {
+    Q->front = NULL;
+    Q->rear  = NULL;
 }
 
-Node* createNode(int jenis) {
-    Node *baru = (Node*) malloc(sizeof(Node));
+int isEmpty(Queue Q) {
+    return (Q.front == NULL);
+}
 
-    generateNomor(baru->nomor, jenis);
-    baru->jenis = jenis;
+void enqueue(Queue *Q, char nomor[]) {
+    Node *baru = (Node*) malloc(sizeof(Node));
+    strcpy(baru->nomor, nomor);
     strcpy(baru->status, "Menunggu");
     baru->next = NULL;
 
-    return baru;
+    if (Q->rear == NULL) {
+        Q->front = Q->rear = baru;
+    } else {
+        Q->rear->next = baru;
+        Q->rear = baru;
+    }
 }
 
-void enqueue(int jenis) {
-    Node *baru = createNode(jenis);
+Node* dequeue(Queue *Q) {
+    if (Q->front == NULL) return NULL;
 
-    if (rear == NULL) {
-        front = rear = baru;
-    } else {
-        rear->next = baru;
-        rear = baru;
-    }
+    Node *hapus = Q->front;
+    Q->front = Q->front->next;
 
-    printf("\n>>> Antrian berhasil ditambahkan!\n");
-    printf("Nomor: %s | Jenis: %d | Status: %s\n\n", 
-        baru->nomor, baru->jenis, baru->status);
+    if (Q->front == NULL) Q->rear = NULL;
+
+    return hapus;
+}
+
+void generateNomor(char *nomor, int jenis) {
+    if (jenis == 1) sprintf(nomor, "R%03d", countR++);
+    else if (jenis == 2) sprintf(nomor, "P%03d", countP++);
+    else sprintf(nomor, "C%03d", countC++);
 }
 
 void menuTambah() {
     int pilihan;
-    printf("\n=== TAMBAH DATA ANTRIAN ===\n");
+    char nomor[10];
+
+    printf("\n-----------------------------------\n");
+    printf("TAMBAH ANTRIAN\n");
+    printf("-----------------------------------\n");
     printf("1. Reguler\n");
     printf("2. Prioritas\n");
     printf("3. Customer Service\n");
@@ -61,32 +73,118 @@ void menuTambah() {
     scanf("%d", &pilihan);
 
     if (pilihan < 1 || pilihan > 3) {
-        printf("\n>>> Pilihan tidak valid! Data tidak ditambahkan.\n\n");
+        printf("\n>>> Pilihan tidak valid!\n\n");
         return;
     }
 
-    enqueue(pilihan);
+    generateNomor(nomor, pilihan);
+
+    if (pilihan == 1) enqueue(&Qreg, nomor);
+    else if (pilihan == 2) enqueue(&Qprio, nomor);
+    else enqueue(&Qcs, nomor);
+
+    printf("\n>>> Antrian berhasil ditambahkan!\n");
+    printf("Nomor Antrian: %s\n\n", nomor);
+}
+
+void menuLayani() {
+    int loket;
+    Queue *Q;
+
+    if (isEmpty(Qreg) && isEmpty(Qprio) && isEmpty(Qcs)) {
+        printf("\n>>> Belum ada data antrian!\n\n");
+        return;
+    }
+
+    printf("\n-----------------------------------\n");
+    printf("LAYANI NASABAH\n");
+    printf("-----------------------------------\n");
+    printf("1. Loket Reguler\n");
+    printf("2. Loket Prioritas\n");
+    printf("3. Loket Customer Service\n");
+    printf("Pilih loket: ");
+    scanf("%d", &loket);
+
+    if (loket == 1) Q = &Qreg;
+    else if (loket == 2) Q = &Qprio;
+    else if (loket == 3) Q = &Qcs;
+    else {
+        printf("\n>>> Loket tidak valid!\n\n");
+        return;
+    }
+
+    if (isEmpty(*Q)) {
+        printf("\n>>> Tidak ada antrian di loket ini!\n\n");
+        return;
+    }
+
+    Node *dilayani = dequeue(Q);
+
+    printf("\nNomor antrian: %s\n", dilayani->nomor);
+
+    int pilihan;
+    printf("\n1. Lanjut Melayani\n");
+    printf("2. Batal (Nasabah tidak hadir)\n");
+    printf("Pilih: ");
+    scanf("%d", &pilihan);
+
+    if (pilihan == 2) {
+        strcpy(dilayani->nama, "-");
+        strcpy(dilayani->kebutuhan, "-");
+        strcpy(dilayani->status, "Tidak Hadir");
+    } else {
+        printf("Masukkan Nama Nasabah   : ");
+        scanf(" %[^\n]", dilayani->nama);
+
+        printf("Masukkan Kebutuhan      : ");
+        scanf(" %[^\n]", dilayani->kebutuhan);
+
+        strcpy(dilayani->status, "Selesai");
+    }
+
+    printf("\n>>> Detail Pelayanan Nasabah <<<\n");
+    printf("Nomor Antrian : %s\n", dilayani->nomor);
+    printf("Loket         : %d\n", loket);
+    printf("Nama          : %s\n", dilayani->nama);
+    printf("Kebutuhan     : %s\n", dilayani->kebutuhan);
+    printf("Status        : %s\n\n", dilayani->status);
+
+    free(dilayani);
 }
 
 int main() {
     int menu;
 
+    initQueue(&Qreg);
+    initQueue(&Qprio);
+    initQueue(&Qcs);
+    initQueue(&Qhistory);
+
     while (1) {
-        printf("=== MENU UTAMA ===\n");
+        printf("===================================\n");
+        printf("        PROGRAM ANTRIAN BANK       \n");
+        printf("===================================\n");
         printf("1. Tambah Data Antrian\n");
-        printf("6. Keluar\n");
+        printf("2. Layani Nasabah\n");
+        printf("3. Cari Data Antrian (ID)\n");
+        printf("4. Tampilkan Data Antrian\n");
+        printf("5. Keluar\n");
         printf("Pilih menu: ");
         scanf("%d", &menu);
 
-        if (menu == 1) {
-            menuTambah();
-        }
-        else if (menu == 6) {
-            printf("Program selesai.\n");
-            break;
-        } 
-        else {
-            printf("Menu tidak tersedia!\n");
+        switch(menu) {
+            case 1:
+                menuTambah();
+                break;
+            case 2:
+                menuLayani();
+                break;
+            case 5:
+                printf("\nProgram selesai.\n");
+                return 0;
+
+            default:
+                printf("\nMenu tidak valid.\n");
         }
     }
 
