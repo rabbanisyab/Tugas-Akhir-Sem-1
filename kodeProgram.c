@@ -53,10 +53,36 @@ Node* dequeue(Queue *Q) {
     return hapus;
 }
 
+Node* cariDiQueue(Queue Q, char nomor[]) {
+    Node *temp = Q.front;
+    while (temp != NULL) {
+        if (strcmp(temp->nomor, nomor) == 0) {
+            return temp;
+        }
+        temp = temp->next;
+    }
+    return NULL;
+}
+
 void generateNomor(char *nomor, int jenis) {
     if (jenis == 1) sprintf(nomor, "R%03d", countR++);
     else if (jenis == 2) sprintf(nomor, "P%03d", countP++);
     else sprintf(nomor, "C%03d", countC++);
+}
+
+void tampilQueue(char *judul, Queue Q) {
+    printf("\n--- %s ---\n", judul);
+
+    if (isEmpty(Q)) {
+        printf("Tidak ada antrian.\n");
+        return;
+    }
+
+    Node *temp = Q.front;
+    while (temp != NULL) {
+        printf("%s (%s)\n", temp->nomor, temp->status);
+        temp = temp->next;
+    }
 }
 
 void menuTambah() {
@@ -152,6 +178,43 @@ void menuLayani() {
     free(dilayani);
 }
 
+void menuCariData() {
+    char nomor[10];
+
+    printf("\n-----------------------------------\n");
+    printf("CARI DATA ANTRIAN (NO)\n");
+    printf("-----------------------------------\n");
+    printf("Masukkan nomor antrian: ");
+    scanf("%s", nomor);
+
+    Node *hasil = NULL;
+
+    hasil = cariDiQueue(Qreg, nomor);
+    if (hasil == NULL) hasil = cariDiQueue(Qprio, nomor);
+    if (hasil == NULL) hasil = cariDiQueue(Qcs, nomor);
+    if (hasil == NULL) hasil = cariDiQueue(Qhistory, nomor);
+    if (hasil == NULL) {
+        printf("\n>>> Data tidak ditemukan!\n\n");
+        return;
+    }
+
+    printf("\n>>> DATA DITEMUKAN <<<\n");
+    printf("Nomor Antrian : %s\n", hasil->nomor);
+    printf("Status        : %s\n\n", hasil->status);
+}
+
+void menuTampilAntrian() {
+    printf("\n-----------------------------------\n");
+    printf("DAFTAR ANTRIAN\n");
+    printf("-----------------------------------\n");
+
+    tampilQueue("Loket Reguler", Qreg);
+    tampilQueue("Loket Prioritas", Qprio);
+    tampilQueue("Loket Customer Service", Qcs);
+
+    printf("\n");
+}
+
 int main() {
     int menu;
 
@@ -178,6 +241,12 @@ int main() {
                 break;
             case 2:
                 menuLayani();
+                break;
+            case 3:
+                menuCariData();
+                break;
+            case 4:
+                menuTampilAntrian();
                 break;
             case 5:
                 printf("\nProgram selesai.\n");
